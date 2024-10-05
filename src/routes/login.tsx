@@ -9,14 +9,13 @@ import { useEffect } from "react";
 const LoginView = () => {
   const auth = useAuth();
   const navigate = useNavigate()
-  const search = Route.useSearch()
+  const search = Route.useSearch() as { redirect?: string };
 
   useEffect(() => {
     if (auth.user) {
-      console.log('useEffect', auth.user);
-      navigate({ to: search?.redirect || "/" });
+      navigate({ to: search.redirect || "/" });
     }
-  }, [auth]);
+  }, [auth, navigate, search]);
 
   return (
     <div>

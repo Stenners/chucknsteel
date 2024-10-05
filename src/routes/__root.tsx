@@ -6,7 +6,7 @@ import { Container } from "@radix-ui/themes/src/index.js";
 import { checkAuth } from "../services/supabase";
 
 interface MyRouterContext {
-  auth: AuthContext;
+  auth: typeof AuthContext;
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
