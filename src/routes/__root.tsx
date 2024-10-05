@@ -2,7 +2,7 @@ import { Outlet, createRootRouteWithContext } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 
 import { type AuthContext } from "../contexts/auth";
-import { Container } from "@radix-ui/themes/src/index.js";
+import { Container } from "@radix-ui/themes";
 import { checkAuth } from "../services/supabase";
 
 interface MyRouterContext {
