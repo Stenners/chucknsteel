@@ -8,11 +8,9 @@ import {
   Checkbox,
 } from "@radix-ui/themes";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-
 import { useAuth } from "../contexts/auth";
 import { useEffect, useState } from "react";
-import { getWorkout } from "../services/supabase";
-// import { userDoc, UserData } from "../services/firebase";
+import { getCurrentDay, getWorkout, saveWorkout } from "../services/supabase";
 
 export const Route = createFileRoute("/")({
   beforeLoad: ({ context, location }) => {
@@ -31,72 +29,125 @@ export const Route = createFileRoute("/")({
 function Index() {
   const auth = useAuth();
   const [workout, setWorkout] = useState<any[]>([]);
+  const [day, setDay] = useState<number>(0);
+
+  const handleComplete = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const data = Object.fromEntries(formData.entries());
+
+    // Define the type for the accumulator
+    interface ExerciseRecord {
+      exercise: number;
+      weight: number[];
+      reps: number[];
+      sets: number;
+      completed?: boolean;
+    }
+
+    const reformattedData = Object.entries(data).reduce(
+      (acc: { [key: string]: ExerciseRecord }, [key, value]) => {
+        const [id, field] = key.split("-");
+        if (!acc[id]) {
+          acc[id] = {
+            exercise: parseInt(id),
+            weight: [],
+            reps: [],
+            sets: workout.find((item) => item.exercise === parseInt(id))?.sets || 0,
+            completed: false,
+          };
+        }
+        if (field === "weight" || field === "reps") {
+          acc[id][field].push(parseFloat(value as string));
+        }
+        if (field === "completed") {
+          acc[id][field] = value === "on";
+        }
+        return acc;
+      },
+      {}
+    );
+
+    const filteredWorkout = Object.values(reformattedData).filter(
+      (workout) => workout.completed
+    );
+    filteredWorkout.forEach((workout) => {
+      delete workout.completed;
+    });
+
+    if (auth.user) {
+      const id = auth.user.id;
+      saveWorkout(id, filteredWorkout, day);
+    } else {
+      console.error("User ID not set");
+    }
+  };
 
   useEffect(() => {
     if (auth.user) {
       const { id } = auth.user;
       const workout = async () => {
-        const workoutData = await getWorkout(id);
-        if (
-          !Array.isArray(workoutData) ||
-          workoutData.some((item) => "error" in item)
-        ) {
-          // Handle error case appropriately
-          console.error("Error fetching workout data:", workoutData);
-          return; // Exit if there's an error
+        if (id) {
+          const currentDay = await getCurrentDay(id);
+          const workoutData = await getWorkout(id, currentDay);
+          setDay(currentDay);
+          setWorkout(workoutData);
         }
-        setWorkout(workoutData);
       };
       workout();
     }
-  }, [auth]);
+  }, []);
 
   return (
     <>
       <Container>
         <Flex direction="column" gap="3">
-          {workout.map((exercise) => (
-            <Box key={exercise.id} mb="3">
-              <Heading size="3" mb="2">
-                {exercise.name
-                  .toLowerCase()
-                  .replace(/\b\w/g, (c: string) => c.toUpperCase())}
-              </Heading>
-              <Flex mb="2">
-                <Box width="30%">Set</Box>
-                <Box width="30%">Weight</Box>
-                <Box width="30%">Reps</Box>
-              </Flex>
-              {Array.from({ length: exercise.sets }, (_, index) => (
-                <Flex key={index}>
-                  <Box width="30%">{index + 1}</Box>
-                  <Box width="30%">
-                    <TextField.Root
-                      defaultValue={exercise.weight}
-                    ></TextField.Root>
-                  </Box>
-                  <Box width="30%">
-                    <TextField.Root
-                      defaultValue={exercise.reps}
-                    ></TextField.Root>
-                  </Box>
-                  <Box width="10%">
-                    <Flex
-                      justify="center"
-                      align="center"
-                      style={{ width: "100%", height: "100%" }}
-                    >
-                      <Checkbox />
-                    </Flex>
-                  </Box>
+          <form onSubmit={handleComplete}>
+            {workout.map((exercise) => (
+              <Box key={exercise.exercise} mb="3">
+                <Heading size="3" mb="2">
+                  {exercise.name
+                    .toLowerCase()
+                    .replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                </Heading>
+                <Flex mb="2">
+                  <Box width="30%">Set</Box>
+                  <Box width="30%">Weight</Box>
+                  <Box width="30%">Reps</Box>
                 </Flex>
-              ))}
-            </Box>
-          ))}
+                {Array.from({ length: exercise.sets }, (_, index) => (
+                  <Flex key={index}>
+                    <Box width="30%">{index + 1}</Box>
+                    <Box width="30%">
+                      <TextField.Root
+                        name={`${exercise.exercise}-weight-${index}`}
+                        defaultValue={exercise.weight}
+                      ></TextField.Root>
+                    </Box>
+                    <Box width="30%">
+                      <TextField.Root
+                        name={`${exercise.exercise}-reps-${index}`}
+                        defaultValue={exercise.reps}
+                      ></TextField.Root>
+                    </Box>
+                    <Box width="10%">
+                      <Flex
+                        justify="center"
+                        align="center"
+                        style={{ width: "100%", height: "100%" }}
+                      >
+                        <Checkbox
+                          name={`${exercise.exercise}-completed-${index}`}
+                        />
+                      </Flex>
+                    </Box>
+                  </Flex>
+                ))}
+              </Box>
+            ))}
+            <Button type="submit">Complete</Button>
+          </form>
         </Flex>
-      </Container>
-      <Container>
-        <Button>Complete</Button>
       </Container>
     </>
   );

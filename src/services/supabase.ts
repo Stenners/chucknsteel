@@ -17,7 +17,7 @@ export const checkAuth = async () => {
   }
 };
 
-export const getWorkout = async (userId: string) => {
+export const getCurrentDay = async (userId: string) => {
   // Get the current workout day for the user
   const { data: currentWorkoutData, error: currentWorkoutError } =
     await supabase
@@ -31,19 +31,54 @@ export const getWorkout = async (userId: string) => {
     return [];
   }
 
-  const currentDay = currentWorkoutData?.day || 1; // Default to day 1 if not found
+  const currentDay = currentWorkoutData?.day || 1;
+  return currentDay;
+};
 
+export const getWorkout = async (userId: string, currentDay: number) => {
   const { data, error } = await supabase
-    .from("gzclp-exercise-prog")
+    .from("gzclp_exercise_prog")
     .select(
-      `tier, sets, reps, weight, ...exercises!gzclp-exercise-prog_exercise_fkey(name)`
+      `exercise, tier, sets, reps, weight, ...exercises!gzclp-exercise-prog_exercise_fkey(name)`
     )
     .eq("user", userId)
     .eq("day", currentDay)
     .order("tier");
+
   if (error) {
     console.error("Error executing query:", error);
-    return error;
+    return [];
   }
   return data;
+};
+
+export const saveWorkout = async (
+  userId: string,
+  workout: any[],
+  day: number
+) => {
+  const workoutWithUser = workout.map((exercise) => ({
+    ...exercise,
+    user: userId,
+    program: "GZCLP",
+  }));
+
+  const { error } = await supabase.from("workout_log").insert(workoutWithUser);
+
+  if (error) {
+    console.error("Error saving workout:", error);
+    return error;
+  }
+
+  const nextDay = day === 4 ? 1 : day + 1;
+
+  const { error: updateError } = await supabase
+    .from("current_workout")
+    .update({ day: nextDay })
+    .eq("user", userId)
+
+  if (updateError) {
+    console.error("Error updating day:", updateError);
+    return updateError;
+  }
 };
