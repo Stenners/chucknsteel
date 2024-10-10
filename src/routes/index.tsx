@@ -53,7 +53,8 @@ function Index() {
             exercise: parseInt(id),
             weight: [],
             reps: [],
-            sets: workout.find((item) => item.exercise === parseInt(id))?.sets || 0,
+            sets:
+              workout.find((item) => item.exercise === parseInt(id))?.sets || 0,
             completed: false,
           };
         }
@@ -99,56 +100,55 @@ function Index() {
   }, []);
 
   return (
-    <>
-      <Container>
-        <Flex direction="column" gap="3">
-          <form onSubmit={handleComplete}>
-            {workout.map((exercise) => (
-              <Box key={exercise.exercise} mb="3">
-                <Heading size="3" mb="2">
-                  {exercise.name
-                    .toLowerCase()
-                    .replace(/\b\w/g, (c: string) => c.toUpperCase())}
-                </Heading>
-                <Flex mb="2">
-                  <Box width="30%">Set</Box>
-                  <Box width="30%">Weight</Box>
-                  <Box width="30%">Reps</Box>
-                </Flex>
-                {Array.from({ length: exercise.sets }, (_, index) => (
-                  <Flex key={index}>
-                    <Box width="30%">{index + 1}</Box>
-                    <Box width="30%">
-                      <TextField.Root
-                        name={`${exercise.exercise}-weight-${index}`}
-                        defaultValue={exercise.weight}
-                      ></TextField.Root>
-                    </Box>
-                    <Box width="30%">
-                      <TextField.Root
-                        name={`${exercise.exercise}-reps-${index}`}
-                        defaultValue={exercise.reps}
-                      ></TextField.Root>
-                    </Box>
-                    <Box width="10%">
-                      <Flex
-                        justify="center"
-                        align="center"
-                        style={{ width: "100%", height: "100%" }}
-                      >
-                        <Checkbox
-                          name={`${exercise.exercise}-completed-${index}`}
-                        />
-                      </Flex>
-                    </Box>
-                  </Flex>
-                ))}
-              </Box>
-            ))}
-            <Button type="submit">Complete</Button>
-          </form>
+    <Flex direction="column" gap="3">
+      <form onSubmit={handleComplete}>
+        <Flex mb="5" justify="end">
+          <Button type="submit">Complete</Button>
         </Flex>
-      </Container>
-    </>
+        {workout.map((exercise) => (
+          <Box key={exercise.exercise} mb="5">
+            <Heading size="3" mb="2">
+              {exercise.name
+                .toLowerCase()
+                .replace(/\b\w/g, (c: string) => c.toUpperCase())}
+            </Heading>
+            <Flex mb="2">
+              <Box width="30%">Set</Box>
+              <Box width="30%">Weight</Box>
+              <Box width="30%">Reps</Box>
+            </Flex>
+            {Array.from({ length: exercise.sets }, (_, index) => (
+              <Flex key={index}>
+                <Box width="30%">{index + 1}</Box>
+                <Box width="30%">
+                  <TextField.Root
+                    name={`${exercise.exercise}-weight-${index}`}
+                    defaultValue={exercise.weight}
+                  ></TextField.Root>
+                </Box>
+                <Box width="30%">
+                  <TextField.Root
+                    name={`${exercise.exercise}-reps-${index}`}
+                    defaultValue={exercise.reps}
+                  ></TextField.Root>
+                </Box>
+                <Box width="10%">
+                  <Flex
+                    justify="center"
+                    align="center"
+                    style={{ width: "100%", height: "100%" }}
+                  >
+                    <Checkbox
+                      size="3"
+                      name={`${exercise.exercise}-completed-${index}`}
+                    />
+                  </Flex>
+                </Box>
+              </Flex>
+            ))}
+          </Box>
+        ))}
+      </form>
+    </Flex>
   );
 }
