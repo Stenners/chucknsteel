@@ -81,4 +81,6 @@ export const saveWorkout = async (
     console.error("Error updating day:", updateError);
     return updateError;
   }
+
+  return true;
 };

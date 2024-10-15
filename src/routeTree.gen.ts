@@ -11,12 +11,18 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as WorkoutImport } from './routes/workout'
 import { Route as PlatecalcImport } from './routes/platecalc'
 import { Route as LoginImport } from './routes/login'
 import { Route as HistoryImport } from './routes/history'
 import { Route as IndexImport } from './routes/index'
 
 // Create/Update Routes
+
+const WorkoutRoute = WorkoutImport.update({
+  path: '/workout',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const PlatecalcRoute = PlatecalcImport.update({
   path: '/platecalc',
@@ -70,6 +76,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlatecalcImport
       parentRoute: typeof rootRoute
     }
+    '/workout': {
+      id: '/workout'
+      path: '/workout'
+      fullPath: '/workout'
+      preLoaderRoute: typeof WorkoutImport
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
@@ -80,6 +93,7 @@ export const routeTree = rootRoute.addChildren({
   HistoryRoute,
   LoginRoute,
   PlatecalcRoute,
+  WorkoutRoute,
 })
 
 /* prettier-ignore-end */
@@ -93,7 +107,8 @@ export const routeTree = rootRoute.addChildren({
         "/",
         "/history",
         "/login",
-        "/platecalc"
+        "/platecalc",
+        "/workout"
       ]
     },
     "/": {
@@ -107,6 +122,9 @@ export const routeTree = rootRoute.addChildren({
     },
     "/platecalc": {
       "filePath": "platecalc.tsx"
+    },
+    "/workout": {
+      "filePath": "workout.tsx"
     }
   }
 }
