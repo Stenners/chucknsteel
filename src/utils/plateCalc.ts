@@ -28,7 +28,7 @@ export default {
    * @return {{plates: Array}} - An array containing information about the calculation
    * that was done and an array of how many plates should be put on the bar
    */
-  calculate: (targetWeight, opts = {}) => {
+  calculate: (targetWeight: number, opts: any = {}) => {
     const options = Object.assign(
       {
         set: defaultWeightSets.METRIC,
@@ -45,9 +45,9 @@ export default {
     options.set = options.set.concat(options.addedPlates);
 
     // Put in order by weight, descending
-    options.set.sort((a, b) => a - b).reverse();
+    options.set.sort((a: number, b: number) => a - b).reverse();
 
-    const result = {
+    const result: { plates: { plateWeight: number; qty: number; }[]; closestWeight?: number } = {
       plates: [],
     };
 
@@ -55,7 +55,7 @@ export default {
     // This is assumed for now, but could change if an assymetric mode is added.
     const multiplier = 2;
 
-    options.set.forEach((plateWeight) => {
+    options.set.forEach((plateWeight: number) => {
       let limitation = options.availablePlates[plateWeight];
 
       if (limitation % multiplier) {
