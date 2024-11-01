@@ -102,6 +102,7 @@ function Workout() {
     }
   }, []);
 
+
   return (
     <Flex direction="column" gap="3">
       <form onSubmit={handleComplete}>
