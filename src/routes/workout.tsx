@@ -25,9 +25,17 @@ export const Route = createFileRoute("/workout")({
   component: Workout,
 });
 
+// Define an interface for the workout data
+interface WorkoutData {
+  id: number;
+  name: string;
+  completed: boolean;
+  exercise: number;
+}
+
 function Workout() {
   const auth = useAuth();
-  const [workout, setWorkout] = useState<any[]>([]);
+  const [workout, setWorkout] = useState<WorkoutData[]>([]);
   const [day, setDay] = useState<number>(0);
   const navigate = useNavigate();
 
@@ -88,26 +96,24 @@ function Workout() {
   };
 
   useEffect(() => {
-    if (auth.user) {
-      const { id } = auth.user;
-      const workout = async () => {
-        if (id) {
-          const currentDay = await getCurrentDay(id);
-          const workoutData = await getWorkout(id, currentDay);
-          setDay(currentDay);
-          setWorkout(workoutData);
-        }
-      };
-      workout();
-    }
-  }, []);
+    const fetchWorkout = async () => {
+      if (auth.user) {
+        const { id } = auth.user;
+        const currentDay = await getCurrentDay(id);
+        setDay(currentDay);
+        const workoutData = await getWorkout(id, currentDay);
+        setWorkout(workoutData);
+      }
+    };
 
+    fetchWorkout();
+  }, [auth.user]);
 
   return (
     <Flex direction="column" gap="3">
       <form onSubmit={handleComplete}>
         {workout.map((exercise) => (
-          <Box key={exercise.exercise} mb="5">
+          <Box key={exercise.id} mb="5">
             <Heading size="3" mb="2">
               {exercise.name
                 .toLowerCase()
