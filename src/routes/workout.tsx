@@ -31,6 +31,9 @@ interface WorkoutData {
   name: string;
   completed: boolean;
   exercise: number;
+  sets: number;
+  weight: number;
+  reps: number;
 }
 
 function Workout() {
@@ -102,7 +105,7 @@ function Workout() {
         const currentDay = await getCurrentDay(id);
         setDay(currentDay);
         const workoutData = await getWorkout(id, currentDay);
-        setWorkout(workoutData);
+        setWorkout(workoutData as unknown as WorkoutData[]);
       }
     };
 
