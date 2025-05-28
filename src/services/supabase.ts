@@ -75,7 +75,7 @@ export const saveWorkout = async (
   const { error: updateError } = await supabase
     .from("current_workout")
     .update({ day: nextDay })
-    .eq("user", userId)
+    .eq("user", userId);
 
   if (updateError) {
     console.error("Error updating day:", updateError);
@@ -88,7 +88,9 @@ export const saveWorkout = async (
 export const getWorkoutLog = async (userId: string) => {
   const { data, error } = await supabase
     .from("workout_log")
-    .select("exercise, sets, reps, weight, ...exercises!workout_log_exercise_fkey(name), created_at")
+    .select(
+      "exercise, sets, reps, weight, ...exercises!workout_log_exercise_fkey(name), created_at"
+    )
     .eq("user", userId)
     .order("created_at", { ascending: false });
 
@@ -96,6 +98,49 @@ export const getWorkoutLog = async (userId: string) => {
     console.error("Error fetching workout log:", error);
     return [];
   }
-  
+
   return data;
 };
+
+export async function changeWeight(
+  userId: string,
+  exerciseId: number,
+  day: number,
+  newWeight?: number
+): Promise<number | null> {
+  try {
+    const { data: currentWeight, error: fetchError } = await supabase
+      .from("gzclp_exercise_prog")
+      .select("weight")
+      .eq("user", userId)
+      .eq("exercise", exerciseId)
+      .eq("day", day)
+      .single();
+
+    if (fetchError) {
+      console.error("Error fetching current weight:", fetchError);
+      return null;
+    }
+
+    const weightToSet = newWeight !== undefined ? newWeight : (currentWeight?.weight || 0) + 5;
+
+    const { data: updatedWeight, error: updateError } = await supabase
+      .from("gzclp_exercise_prog")
+      .update({ weight: weightToSet })
+      .eq("user", userId)
+      .eq("exercise", exerciseId)
+      .eq("day", day)
+      .select("weight")
+      .single();
+
+    if (updateError) {
+      console.error("Error updating weight:", updateError);
+      return null;
+    }
+
+    return updatedWeight?.weight || null;
+  } catch (error) {
+    console.error("Error in changeWeight:", error);
+    return null;
+  }
+}

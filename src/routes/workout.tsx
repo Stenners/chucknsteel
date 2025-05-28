@@ -5,11 +5,12 @@ import {
   Heading,
   Box,
   Checkbox,
+  Dialog,
 } from "@radix-ui/themes";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "../contexts/auth";
 import { useEffect, useState } from "react";
-import { getCurrentDay, getWorkout, saveWorkout } from "../services/supabase";
+import { getCurrentDay, getWorkout, saveWorkout, changeWeight } from "../services/supabase";
 
 export const Route = createFileRoute("/workout")({
   beforeLoad: ({ context, location }) => {
@@ -36,11 +37,106 @@ interface WorkoutData {
   reps: number;
 }
 
+function ExerciseActions({ exercise, day, onWeightUpdate }: { 
+  exercise: WorkoutData; 
+  day: number; 
+  onWeightUpdate: (exerciseId: number, newWeight: number) => void 
+}) {
+  const auth = useAuth();
+  const [open, setOpen] = useState(false);
+  const [changeWeightOpen, setChangeWeightOpen] = useState(false);
+  const [newWeight, setNewWeight] = useState(exercise.weight.toString());
+
+  const handleIncrement = async () => {
+    if (!auth?.user?.id) return;
+    const newWeight = await changeWeight(auth.user.id, exercise.exercise, day);
+    if (newWeight !== null) {
+      onWeightUpdate(exercise.exercise, newWeight);
+      setOpen(false);
+    }
+  };
+
+  const handleChangeWeight = async () => {
+    if (!auth?.user?.id) return;
+    const weight = parseFloat(newWeight);
+    if (isNaN(weight)) return;
+    
+    const success = await changeWeight(auth.user.id, exercise.exercise, day, weight);
+    if (success !== null) {
+      onWeightUpdate(exercise.exercise, success);
+      setChangeWeightOpen(false);
+      setOpen(false);
+    }
+  };
+
+  return (
+    <>
+      <Dialog.Root open={open} onOpenChange={setOpen}>
+        <Dialog.Trigger>
+          <Button variant="ghost">...</Button>
+        </Dialog.Trigger>
+        <Dialog.Content style={{ maxWidth: 450 }}>
+          <Dialog.Title>Exercise Options</Dialog.Title>
+          <Flex direction="column" gap="3" mt="4">
+            <Button variant="soft" onClick={handleIncrement}>
+              Increment Weight
+            </Button>
+            <Button variant="soft" onClick={() => setChangeWeightOpen(true)}>
+              Change Weight
+            </Button>
+            <Button variant="soft" onClick={() => {}}>
+              Progress Exercise
+            </Button>
+          </Flex>
+        </Dialog.Content>
+      </Dialog.Root>
+
+      <Dialog.Root open={changeWeightOpen} onOpenChange={setChangeWeightOpen}>
+        <Dialog.Content style={{ maxWidth: 450 }}>
+          <Dialog.Title>Change Weight</Dialog.Title>
+          <Flex direction="column" gap="3" mt="4">
+            <input
+              type="number"
+              value={newWeight}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewWeight(e.target.value)}
+              placeholder="Enter new weight"
+              style={{ 
+                width: '100%', 
+                padding: '8px', 
+                border: '1px solid #ccc', 
+                borderRadius: '4px' 
+              }}
+            />
+            <Flex gap="3" justify="end" mt="4">
+              <Button variant="soft" onClick={() => setChangeWeightOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleChangeWeight}>
+                Save
+              </Button>
+            </Flex>
+          </Flex>
+        </Dialog.Content>
+      </Dialog.Root>
+    </>
+  );
+}
+
 function Workout() {
   const auth = useAuth();
   const [workout, setWorkout] = useState<WorkoutData[]>([]);
   const [day, setDay] = useState<number>(0);
   const navigate = useNavigate();
+
+  const handleWeightUpdate = (exerciseId: number, newWeight: number) => {
+    setWorkout(prevWorkout => 
+      prevWorkout.map(exercise => 
+        exercise.exercise === exerciseId 
+          ? { ...exercise, weight: newWeight }
+          : exercise
+      )
+    );
+  };
 
   const handleComplete = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -113,34 +209,47 @@ function Workout() {
   }, [auth.user]);
 
   return (
-    <Flex direction="column" gap="3">
+    <Flex direction="column" gap="3" mx="2">
       <form onSubmit={handleComplete}>
         {workout.map((exercise) => (
-          <Box key={exercise.id} mb="5">
-            <Heading size="3" mb="2">
-              {exercise.name
-                .toLowerCase()
-                .replace(/\b\w/g, (c: string) => c.toUpperCase())}
-            </Heading>
+          <Box key={exercise.exercise} mb="5">
+            <Flex justify="between">
+              <Heading size="3" mb="2">
+                {exercise.name
+                  .toLowerCase()
+                  .replace(/\b\w/g, (c: string) => c.toUpperCase())}
+              </Heading>
+              <ExerciseActions 
+                exercise={exercise} 
+                day={day} 
+                onWeightUpdate={handleWeightUpdate}
+              />
+            </Flex>
             <Flex mb="2">
               <Box width="30%">Set</Box>
               <Box width="30%">Weight</Box>
               <Box width="30%">Reps</Box>
             </Flex>
             {Array.from({ length: exercise.sets }, (_, index) => (
-              <Flex key={index}>
+              <Flex key={`${exercise.exercise}-${index}`}>
                 <Box width="30%">{index + 1}</Box>
                 <Box width="30%">
                   <TextField.Root
                     name={`${exercise.exercise}-weight-${index}`}
-                    defaultValue={exercise.weight}
-                  ></TextField.Root>
+                    value={exercise.weight}
+                    onChange={(e) => {
+                      const newWeight = parseFloat(e.target.value);
+                      if (!isNaN(newWeight)) {
+                        handleWeightUpdate(exercise.exercise, newWeight);
+                      }
+                    }}
+                  />
                 </Box>
                 <Box width="30%">
                   <TextField.Root
                     name={`${exercise.exercise}-reps-${index}`}
                     defaultValue={exercise.reps}
-                  ></TextField.Root>
+                  />
                 </Box>
                 <Box width="10%">
                   <Flex
