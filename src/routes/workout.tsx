@@ -6,8 +6,10 @@ import {
   Box,
   Checkbox,
   Dialog,
+  Card,
+  Text,
 } from "@radix-ui/themes";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate, useSearch } from "@tanstack/react-router";
 import { useAuth } from "../contexts/auth";
 import { useEffect, useState } from "react";
 import { getCurrentDay, getWorkout, saveWorkout, changeWeight } from "../services/supabase";
@@ -122,10 +124,64 @@ function ExerciseActions({ exercise, day, onWeightUpdate }: {
   );
 }
 
-function Workout() {
+function WorkoutList({ currentDay }: { currentDay: number }) {
+  const auth = useAuth();
+  const navigate = useNavigate();
+  const [allWorkouts, setAllWorkouts] = useState<{ [key: number]: WorkoutData[] }>({});
+
+  useEffect(() => {
+    const fetchAllWorkouts = async () => {
+      if (auth.user) {
+        const workouts: { [key: number]: WorkoutData[] } = {};
+        for (let day = 1; day <= 4; day++) {
+          const workoutData = await getWorkout(auth.user.id, day);
+          workouts[day] = workoutData as unknown as WorkoutData[];
+        }
+        setAllWorkouts(workouts);
+      }
+    };
+
+    fetchAllWorkouts();
+  }, [auth.user]);
+
+  const handleWorkoutSelect = (day: number) => {
+    navigate({ to: "/workout", search: { day } });
+  };
+
+  return (
+    <Flex direction="column" gap="4">
+      <Heading size="4">All Workouts</Heading>
+      {[1, 2, 3, 4].map((day) => (
+        <Card 
+          key={day} 
+          style={{ 
+            border: day === currentDay ? '2px solid #007bff' : '1px solid #ddd',
+            backgroundColor: day === currentDay ? '#f8f9fa' : 'white'
+          }}
+        >
+          <Flex justify="between" align="center" p="3">
+            <Box>
+              <Heading size="3">Day {day}</Heading>
+              <Text size="2" color="gray">
+                {allWorkouts[day]?.length || 0} exercises
+              </Text>
+            </Box>
+            <Button 
+              variant={day === currentDay ? "solid" : "soft"}
+              onClick={() => handleWorkoutSelect(day)}
+            >
+              {day === currentDay ? "Current" : "View"}
+            </Button>
+          </Flex>
+        </Card>
+      ))}
+    </Flex>
+  );
+}
+
+function WorkoutDetail({ day }: { day: number }) {
   const auth = useAuth();
   const [workout, setWorkout] = useState<WorkoutData[]>([]);
-  const [day, setDay] = useState<number>(0);
   const navigate = useNavigate();
 
   const handleWeightUpdate = (exerciseId: number, newWeight: number) => {
@@ -143,7 +199,6 @@ function Workout() {
     const formData = new FormData(e.target as HTMLFormElement);
     const data = Object.fromEntries(formData.entries());
 
-    // Define the type for the accumulator
     interface ExerciseRecord {
       exercise: number;
       weight: number[];
@@ -198,18 +253,23 @@ function Workout() {
     const fetchWorkout = async () => {
       if (auth.user) {
         const { id } = auth.user;
-        const currentDay = await getCurrentDay(id);
-        setDay(currentDay);
-        const workoutData = await getWorkout(id, currentDay);
+        const workoutData = await getWorkout(id, day);
         setWorkout(workoutData as unknown as WorkoutData[]);
       }
     };
 
     fetchWorkout();
-  }, [auth.user]);
+  }, [auth.user, day]);
 
   return (
-    <Flex direction="column" gap="3" mx="2">
+    <Flex direction="column" gap="3">
+      <Flex justify="between" align="center">
+        <Heading size="4">Day {day} Workout</Heading>
+        <Button variant="soft" onClick={() => navigate({ to: "/workout" })}>
+          ← Back to All Workouts
+        </Button>
+      </Flex>
+      
       <form onSubmit={handleComplete}>
         {workout.map((exercise) => (
           <Box key={exercise.exercise} mb="5">
@@ -273,4 +333,30 @@ function Workout() {
       </form>
     </Flex>
   );
+}
+
+function Workout() {
+  const auth = useAuth();
+  const [currentDay, setCurrentDay] = useState<number>(0);
+  const search = useSearch({ from: "/workout" }) as { day?: number };
+
+  useEffect(() => {
+    const fetchCurrentDay = async () => {
+      if (auth.user) {
+        const { id } = auth.user;
+        const day = await getCurrentDay(id);
+        setCurrentDay(day);
+      }
+    };
+
+    fetchCurrentDay();
+  }, [auth.user]);
+
+  // If a specific day is selected, show the workout detail
+  if (search.day) {
+    return <WorkoutDetail day={search.day} />;
+  }
+
+  // Otherwise show the workout list
+  return <WorkoutList currentDay={currentDay} />;
 }

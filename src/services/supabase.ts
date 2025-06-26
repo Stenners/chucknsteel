@@ -109,20 +109,22 @@ export async function changeWeight(
   newWeight?: number
 ): Promise<number | null> {
   try {
-    const { data: currentWeight, error: fetchError } = await supabase
+    const { data: exerciseData, error: fetchError } = await supabase
       .from("gzclp_exercise_prog")
-      .select("weight")
+      .select("weight, increment")
       .eq("user", userId)
       .eq("exercise", exerciseId)
       .eq("day", day)
       .single();
 
     if (fetchError) {
-      console.error("Error fetching current weight:", fetchError);
+      console.error("Error fetching exercise data:", fetchError);
       return null;
     }
 
-    const weightToSet = newWeight !== undefined ? newWeight : (currentWeight?.weight || 0) + 5;
+    const weightToSet = newWeight !== undefined 
+      ? newWeight 
+      : (exerciseData?.weight || 0) + (exerciseData?.increment || 5);
 
     const { data: updatedWeight, error: updateError } = await supabase
       .from("gzclp_exercise_prog")

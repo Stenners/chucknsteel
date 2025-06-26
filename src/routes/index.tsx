@@ -8,7 +8,7 @@ const Nav = () => {
       <Link to="/">Home</Link>
       <Link to="/platecalc">Plate Calc</Link>
       <Link to="/history">History</Link>
-      <Link to="/workout">Workout</Link>
+      <Link to="/workout">Workouts</Link>
     </Flex>
   );
 };
